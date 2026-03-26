@@ -129,3 +129,56 @@ for i in range(len(data)):
     cursor.execute("UPDATE supplier SET embedding = %s WHERE supplier_id = %s;", (embedding_str,supplierid))
 
 conn.commit()
+
+# 25/3/2026
+
+# write a prompt to fetch data from the table using embedding search
+prompt = "fast delivery"
+response = client.embeddings.create(model='text-embedding-3-small', input=prompt)
+print(response)
+# extract only the embeddings
+prompt_embed = response.data[0].embedding
+
+# form the query to run the embedding search
+qry = f''' select sd.*
+        from supplier s
+        join supplier_data sd
+        on sd.supplier_id = s.supplier_id
+        order by s.embedding <=> '{prompt_embed}'::vector
+        limit 10;
+        '''
+print(qry)
+
+# execute the query
+def executeQuery(query):
+    try:
+        data = ''
+
+        cursor.execute(query)
+        data = cursor.fetchall()
+
+        cols = [c[0] for c in cursor.description]
+        data = pd.DataFrame(data, columns=cols)
+
+    except Exception as e:
+        data = "Exception." + str(e)
+
+    return(data)
+
+data = executeQuery(qry)
+print(data)
+
+# evaluation
+# "fast delivery"
+
+data.columns
+data[['supplier_id','on_time_delivery_pct','late_deliveries']].sort_values('on_time_delivery_pct', ascending=False)
+
+
+
+
+
+
+
+
+
